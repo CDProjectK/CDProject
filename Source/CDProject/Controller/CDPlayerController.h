@@ -15,8 +15,7 @@ public:
 	ACDPlayerController();
 
 	bool EnsureHUD();
-	//void SetHUD();
-
+	void TotalSetHUD();
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDKill(float killcount);
 	void SetHUDDeath(float deathcount);
@@ -35,7 +34,7 @@ private:
 	class ACDHUD* CDHUD;
 
 	UPROPERTY()
-	class UGameStateOverlay* GameStateOverlay;
+	class UKDOverlay* GameStateOverlay;
 	
 	UPROPERTY()
 	class UCharacterOverlay* Overlay;
