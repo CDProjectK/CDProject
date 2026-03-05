@@ -91,6 +91,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<class UCombatComponent> _combat;
 	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<class ULagCompensationComponent> LagCompensation;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<class UFootIKComponent> _footIK;
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<class UTextRenderComponent> _textRenderer;
@@ -133,6 +135,7 @@ public:
 	FORCEINLINE class UInputMappingContext* GetInputMapping() { return _inputMappingContext; }
 	FORCEINLINE USceneCaptureComponent2D* GetCaptureTarget2D() { return SceneCapture2D; }
 	FORCEINLINE UTextureRenderTarget2D* GetMiniMapTarget() { return MiniMapRenderTarget; }
+	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	FORCEINLINE ETeam GetTeam() { return _team; }
 	
 private:
