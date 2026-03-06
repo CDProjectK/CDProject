@@ -31,6 +31,21 @@ AProjectile::AProjectile()
 	
 }
 
+void AProjectile::PostEditChangeProperty(struct FPropertyChangedEvent& Event)
+{
+	Super::PostEditChangeProperty(Event);
+	FName PropertyName=Event.Property!=nullptr?Event.Property->GetFName():NAME_None;
+	
+	if (PropertyName==GET_MEMBER_NAME_CHECKED(AProjectile, InitialSpeed))
+	{
+		if (ProjectileMovementComponent)
+		{
+			ProjectileMovementComponent->InitialSpeed=InitialSpeed;
+			ProjectileMovementComponent->MaxSpeed=InitialSpeed;
+		}
+	}
+}
+
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();

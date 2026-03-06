@@ -14,6 +14,9 @@ class CDPROJECT_API AProjectile : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AProjectile();
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& Event) override;
+#endif
 	virtual void Destroyed() override;//Pawn Cascade
 	FORCEINLINE float GetDestroyTime() { return DestroyTime; }
 

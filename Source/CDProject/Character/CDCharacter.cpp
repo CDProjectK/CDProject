@@ -8,11 +8,13 @@
 #include "AbilitySystemComponent.h"
 #include "CDCharacterAttributeSet.h"
 #include "CDCharacterMovementComponent.h"
+#include "CDProject/CDProject.h"
 #include "CDProject/AI/CDAIController.h"
 #include "CDProject/Anim/CDAnimInstance.h"
 #include "CDProject/Component//FootIKComponent.h"
 #include "CDProject/Component/CDSpringArmComponent.h"
 #include "CDProject/Component/CombatComponent.h"
+#include "CDProject/Component/LagCompensationComponent.h"
 #include "CDProject/Controller/CDPlayerController.h"
 #include "CDProject/GameMode/DeathMatchGameMode.h"
 #include "CDProject/GameMode/RoundGameMode.h"
@@ -21,6 +23,7 @@
 #include "CDProject/Weapon/Weapon.h"
 #include "CDProject/Weapon/DamageType/DamageType_Explode.h"
 #include "CDServer/Player/Team.h"
+#include "Components/BoxComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/TextRenderComponent.h"
@@ -62,6 +65,8 @@ ACDCharacter::ACDCharacter()
 	
 	_footIK = CreateDefaultSubobject<UFootIKComponent>(TEXT("FootIK"));
 	
+	LagCompensation = CreateDefaultSubobject<ULagCompensationComponent>(TEXT("LagCompensation"));
+	
 	AttributeSet = CreateDefaultSubobject<UCDCharacterAttributeSet>(TEXT("AttributeSet"));
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
@@ -87,6 +92,57 @@ ACDCharacter::ACDCharacter()
 	SceneCapture2D->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 	SceneCapture2D->bCaptureEveryFrame = false;
 	SceneCapture2D->bCaptureOnMovement = true;
+	
+	head = CreateDefaultSubobject<UBoxComponent>(TEXT("head"));
+	head->SetupAttachment(GetMesh(), FName("head"));
+	HitCollisionBoxes.Add(FName("head"), head);
+	
+	body = CreateDefaultSubobject<UBoxComponent>(TEXT("body"));
+	body->SetupAttachment(GetMesh(), FName("body"));
+	HitCollisionBoxes.Add(FName("body"), head);
+	
+	upperarm_l = CreateDefaultSubobject<UBoxComponent>(TEXT("upperarm_l"));
+	upperarm_l->SetupAttachment(GetMesh(), FName("upperarm_l"));
+	HitCollisionBoxes.Add(FName("upperarm_l"), upperarm_l);
+
+	upperarm_r = CreateDefaultSubobject<UBoxComponent>(TEXT("upperarm_r"));
+	upperarm_r->SetupAttachment(GetMesh(), FName("upperarm_r"));
+	HitCollisionBoxes.Add(FName("upperarm_r"), upperarm_r);
+	
+	hand_l = CreateDefaultSubobject<UBoxComponent>(TEXT("hand_l"));
+	hand_l->SetupAttachment(GetMesh(), FName("hand_l"));
+	HitCollisionBoxes.Add(FName("hand_l"), hand_l);
+
+	hand_r = CreateDefaultSubobject<UBoxComponent>(TEXT("hand_r"));
+	hand_r->SetupAttachment(GetMesh(), FName("hand_r"));
+	HitCollisionBoxes.Add(FName("hand_r"), hand_r);
+	
+	thigh_l = CreateDefaultSubobject<UBoxComponent>(TEXT("thigh_l"));
+	thigh_l->SetupAttachment(GetMesh(), FName("thigh_l"));
+	HitCollisionBoxes.Add(FName("thigh_l"), thigh_l);
+
+	thigh_r = CreateDefaultSubobject<UBoxComponent>(TEXT("thigh_r"));
+	thigh_r->SetupAttachment(GetMesh(), FName("thigh_r"));
+	HitCollisionBoxes.Add(FName("thigh_r"), thigh_r);
+
+	foot_l = CreateDefaultSubobject<UBoxComponent>(TEXT("foot_l"));
+	foot_l->SetupAttachment(GetMesh(), FName("foot_l"));
+	HitCollisionBoxes.Add(FName("foot_l"), foot_l);
+
+	foot_r = CreateDefaultSubobject<UBoxComponent>(TEXT("foot_r"));
+	foot_r->SetupAttachment(GetMesh(), FName("foot_r"));
+	HitCollisionBoxes.Add(FName("foot_r"), foot_r);
+	
+	for (auto Box: HitCollisionBoxes)
+	{
+		if (Box.Value)
+		{
+			Box.Value->SetCollisionObjectType(ECC_HitBox);//HitBox라는 특수 판정 채널로 등록
+			Box.Value->SetCollisionResponseToChannels(ECollisionResponse::ECR_Ignore);//상호작용 무시
+			Box.Value->SetCollisionResponseToChannel(ECC_HitBox, ECR_Block);//앞선 설정에서 모든 채널에대해 상호작용무시해놨지만, HitBox는 Ignore->Block으로 바꿔라
+			Box.Value->SetCollisionEnabled(ECollisionEnabled::NoCollision);//성능최적화를 위한  Block
+		}
+	}
 }
 
 // Called when the game starts or when spawned
@@ -313,6 +369,20 @@ void ACDCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ACDCharacter, _controlRotation);
 	DOREPLIFETIME(ACDCharacter, _team);
 	DOREPLIFETIME(ACDCharacter, UserName);
+}
+
+void ACDCharacter::PostInitializeComponents()
+{//Controller등의 생성자 단계에서 완벽하게 로딩되지 않은것들 조립.
+	Super::PostInitializeComponents();
+	
+	if (LagCompensation)
+	{
+		LagCompensation->Character = this;
+		if (Controller)
+		{
+			LagCompensation->Controller = Cast<ACDPlayerController>(Controller);
+		}
+	}
 }
 
 void ACDCharacter::PossessedBy(AController* NewController)

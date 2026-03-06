@@ -9,6 +9,8 @@
 #include "CDServer/Player/CDSessionPlayerController.h"
 #include "CDPlayerController.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bPingTooHigh);
+
 UCLASS()
 class CDPROJECT_API ACDPlayerController : public ACDSessionPlayerController, public IGenericTeamAgentInterface
 {
@@ -93,6 +95,12 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void ClientSetMatchState(ECurMatchState state, float curTime);
+	
+	void HighPingWarning();
+	void StopHighPingWarning();
+	void CheckPing(float DeltaTime);
+	//Delegate
+	FHighPingDelegate HighPingDelegate;
 
 protected:
 	virtual void BeginPlay() override;
@@ -198,9 +206,23 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<class UInputAction> _tabAction;
 	int32 CurPlayerIndex = 0;
+	
 	void LMouseDown();
 	void TabStart();
 	void TabEnd();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerReportPingStatus(bool bHighPing);
+
+	//Ping Variable
+	float HighPingRunningTime = 0.f;
+	
+	UPROPERTY(EditAnywhere)
+	float HighPingThreshold = 50.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Ping")
+	float CheckPingFrequency = 20.f;
+	
 	
 };
 

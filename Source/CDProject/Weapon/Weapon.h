@@ -126,6 +126,10 @@ public:
 	void SetWeaponVisible(bool tf);
 
 	FVector GetWeaponMuzzle(); 
+	
+	UFUNCTION()
+	void OnPingTooHigh(bool bPingTooHigh);
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -135,6 +139,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Weapon Property")
 	EWeaponType WeaponType;
 
+	UPROPERTY(Replicated, EditAnywhere)
+	bool bUseServerSideRewind = false;
+	
 	UPROPERTY(VisibleAnywhere)
 	class ACDCharacter* OwnerCharacter;
 

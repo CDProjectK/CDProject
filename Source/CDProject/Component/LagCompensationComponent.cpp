@@ -24,10 +24,45 @@ void ULagCompensationComponent::BeginPlay()
 
 void ULagCompensationComponent::SaveFramePackage(FFramePackage& Package)
 {
+	Character = Character == nullptr ? Cast<ACDCharacter>(GetOwner()) : Character;
+	if (Character)
+	{
+		Package.Time = GetWorld()->GetTimeSeconds();
+		Package.Character = Character;
+		for (auto& BoxPair : Character->HitCollisionBoxes)
+		{
+			FBoxInformation BoxInformation;
+			BoxInformation.Location = BoxPair.Value->GetComponentLocation();
+			BoxInformation.Rotation = BoxPair.Value->GetComponentRotation();
+			BoxInformation.BoxExtent = BoxPair.Value->GetScaledBoxExtent();
+			Package.HitBoxInfo.Add(BoxPair.Key, BoxInformation);
+		}
+	}
+	
 }
 
 void ULagCompensationComponent::SaveFramePackage()
 {
+	if (FrameHistory.Num() <= 1)
+	{
+		FFramePackage ThisFrame;
+		SaveFramePackage(ThisFrame);
+		FrameHistory.AddHead(ThisFrame);
+	}
+	else
+	{
+		float HistoryLength = FrameHistory.GetHead()->GetValue().Time - FrameHistory.GetTail()->GetValue().Time;
+		while (HistoryLength > MaxRecordTime)
+		{
+			FrameHistory.RemoveNode(FrameHistory.GetTail());
+			HistoryLength = FrameHistory.GetHead()->GetValue().Time - FrameHistory.GetTail()->GetValue().Time;
+		}
+		FFramePackage ThisFrame;
+		SaveFramePackage(ThisFrame);
+		FrameHistory.AddHead(ThisFrame);
+
+		ShowFramePackage(ThisFrame, FColor::Red);
+	}
 }
 
 void ULagCompensationComponent::CacheBoxPositions(ACDCharacter* HitCharacter, FFramePackage& OutFramePackage)
@@ -239,7 +274,16 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(const FFramePackag
 void ULagCompensationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	//Test
+	FFramePackage ThisFrame;
+	SaveFramePackage(ThisFrame);
+	FrameHistory.AddHead(ThisFrame);
+	if (GFrameCounter % 3 == 0)//엔진 내부의 프레임
+	{
+		ShowFramePackage(ThisFrame, FColor::Red);
+	}
+	
+	//
 }
 
 void ULagCompensationComponent::ShowFramePackage(const FFramePackage& Package, const FColor& Color)

@@ -58,6 +58,8 @@ class CDPROJECT_API ULagCompensationComponent : public UActorComponent
 
 public:	
 	ULagCompensationComponent();
+	friend class ACDCharacter;
+	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void ShowFramePackage(const FFramePackage& Package, const FColor& Color);
 
@@ -108,5 +110,5 @@ private:
 	
 	UPROPERTY(EditAnywhere)
 	float MaxRecordTime=4.f;
-		
+
 };

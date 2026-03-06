@@ -168,6 +168,30 @@ void ACDPlayerController::ClientSetMatchState_Implementation(ECurMatchState stat
 	OnMatchStateSet(MatchState);
 }
 
+void ACDPlayerController::CheckPing(float DeltaTime)
+{
+	if (HasAuthority()) return;
+	HighPingRunningTime+=DeltaTime;
+	if (HighPingRunningTime>CheckPingFrequency)
+	{
+		if (PlayerState==nullptr) PlayerState=GetPlayerState<ACDPlayerState>();
+		if (PlayerState)
+		{
+			if (PlayerState->ExactPing>HighPingThreshold)
+			{
+				//HighPingWarning();
+				ServerReportPingStatus(true);
+			}
+			else
+			{
+				ServerReportPingStatus(false);
+			}
+		}
+		HighPingRunningTime=0.f;
+	}
+	//StopHighPingWarning();
+}
+
 void ACDPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -973,6 +997,11 @@ void ACDPlayerController::TabStart()
 void ACDPlayerController::TabEnd()
 {
 	ShowKDOverlay(false);
+}
+
+void ACDPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
+{
+	HighPingDelegate.Broadcast(bHighPing);
 }
 
 void ACDPlayerController::ShowSniperScope(bool bIsAiming, bool bIsForce)

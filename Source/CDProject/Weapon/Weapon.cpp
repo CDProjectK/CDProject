@@ -97,6 +97,11 @@ FVector AWeapon::GetWeaponMuzzle()
 	return muzzleLocation;
 }
 
+void AWeapon::OnPingTooHigh(bool bPingTooHigh)
+{
+	bUseServerSideRewind = !bPingTooHigh;
+}
+
 
 void AWeapon::SetWeaponVisible(bool tf)
 {
@@ -254,6 +259,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLif
 	DOREPLIFETIME(AWeapon, Ammo);
 	DOREPLIFETIME(AWeapon, CarriedAmmo);
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME_CONDITION(AWeapon, bUseServerSideRewind, COND_OwnerOnly);
 }
 
 void AWeapon::OnRep_Owner()
@@ -279,6 +285,11 @@ void AWeapon::OnRep_Owner()
 
 void AWeapon::Dropped(FVector& impactDir)
 {
+	if (HasAuthority() && OwnerController && OwnerController->HighPingDelegate.IsBound())
+	{
+		OwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+	}
+	
 	SetOwner(nullptr);
 
 	//Server Set (On Rep)
@@ -323,6 +334,11 @@ void AWeapon::AttachToPlayer()
 		TEXT("WeaponSocket")
 	);
 	GetWeaponMesh3p()->SetOwnerNoSee(true);
+	
+	if (HasAuthority()&&bUseServerSideRewind&&OwnerController->HighPingDelegate.IsBound())
+	{
+		OwnerController->HighPingDelegate.AddDynamic(this, &AWeapon::OnPingTooHigh);
+	}
 }
 
 void AWeapon::SetWeaponAmmoHUD()
