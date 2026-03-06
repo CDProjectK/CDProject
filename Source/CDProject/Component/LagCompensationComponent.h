@@ -51,7 +51,6 @@ struct FServerSideRewindResult
 };
 
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CDPROJECT_API ULagCompensationComponent : public UActorComponent
 {
@@ -80,9 +79,18 @@ protected:
 	virtual void BeginPlay() override;
 	void SaveFramePackage(FFramePackage& Package);
 	void SaveFramePackage();
+	
+	void CacheBoxPositions(ACDCharacter* HitCharacter, FFramePackage& OutFramePackage);
+	void MoveBoxes(ACDCharacter* HitCharacter, const FFramePackage& Package);
+	void ResetHitBoxes(ACDCharacter* HitCharacter, const FFramePackage& Package);
+	void EnableCharacterMeshCollision(ACDCharacter* HitCharacter, ECollisionEnabled::Type CollisionEnabled);
+
 	FFramePackage InterpBetweenFrames(const FFramePackage& OlderFrame, const FFramePackage& YoungerFrame, float HitTime);
 	FFramePackage GetFrameToCheck(ACDCharacter* HitCharacter,float HitTime);
 	
+	
+	
+	//HitScan Weapon
 	FServerSideRewindResult ConfirmHit(
 	const FFramePackage& Package,
 	ACDCharacter* HitCharacter,

@@ -47,6 +47,9 @@ public:
 	void DestroyAllWeapon();
 	void Kill();
 	void GiveC4();
+	
+	UPROPERTY()
+	TMap<FName, class UBoxComponent*> HitCollisionBoxes;
 
 private:
 	//Properties

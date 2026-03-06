@@ -3,7 +3,9 @@
 
 #include "LagCompensationComponent.h"
 
+#include "CDProject/CDProject.h"
 #include "CDProject/Character/CDCharacter.h"
+#include "Components/BoxComponent.h"
 
 
 ULagCompensationComponent::ULagCompensationComponent()
@@ -27,9 +29,66 @@ void ULagCompensationComponent::SaveFramePackage(FFramePackage& Package)
 void ULagCompensationComponent::SaveFramePackage()
 {
 }
-void ULagCompensationComponent::ServerScoreRequest_Implementation(ACDCharacter* HitCharacter,
-	const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation, float HitTime)
+
+void ULagCompensationComponent::CacheBoxPositions(ACDCharacter* HitCharacter, FFramePackage& OutFramePackage)
 {
+	if (HitCharacter==nullptr) return;
+	for (auto& HitBoxPair:HitCharacter->HitCollisionBoxes)
+	{
+		if (HitBoxPair.Value!=nullptr)//==if(UBoxComponent* Box=HitBoxPair.Value) -> Scope-based 방식
+		{
+			FBoxInformation BoxInfo;
+			BoxInfo.Location=HitBoxPair.Value->GetComponentLocation();
+			BoxInfo.Rotation=HitBoxPair.Value->GetComponentRotation();
+			BoxInfo.BoxExtent=HitBoxPair.Value->GetScaledBoxExtent();
+			OutFramePackage.HitBoxInfo.Add(HitBoxPair.Key,BoxInfo);
+		}
+	}
+}
+
+void ULagCompensationComponent::MoveBoxes(ACDCharacter* HitCharacter, const FFramePackage& Package)
+{
+}
+
+void ULagCompensationComponent::ResetHitBoxes(ACDCharacter* HitCharacter, const FFramePackage& Package)
+{
+	if (HitCharacter==nullptr) return;
+	for (auto& HitBoxPair:HitCharacter->HitCollisionBoxes)
+	{
+		if (HitBoxPair.Value!=nullptr)
+		{
+			HitBoxPair.Value->SetWorldLocation(Package.HitBoxInfo[HitBoxPair.Key].Location);
+			HitBoxPair.Value->SetWorldRotation(Package.HitBoxInfo[HitBoxPair.Key].Rotation);
+			HitBoxPair.Value->SetBoxExtent(Package.HitBoxInfo[HitBoxPair.Key].BoxExtent);
+			HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+}
+
+void ULagCompensationComponent::EnableCharacterMeshCollision(ACDCharacter* HitCharacter,
+	ECollisionEnabled::Type CollisionEnabled)
+{
+	if (HitCharacter&&HitCharacter->GetMesh())
+	{
+		HitCharacter->GetMesh()->SetCollisionEnabled(CollisionEnabled);
+	}
+}
+
+void ULagCompensationComponent::ServerScoreRequest_Implementation(ACDCharacter* HitCharacter,
+                                                                  const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation, float HitTime)
+{
+	FServerSideRewindResult Confirm=ServerSideRewind(HitCharacter, TraceStart, HitLocation, HitTime);
+	// if (Character&&HitCharacter&&&Confirm.bHitConfirmed)
+	// {
+	// 	//	const float Damage = Confirm.bHeadShot ? Character->GetEquippedWeapon()->GetHeadShotDamage() : Character->GetEquippedWeapon()->GetDamage();
+	// 	UGameplayStatics::ApplyDamage(
+	// 		HitCharacter,
+	// 		Damage,
+	// 		Character->Controller,
+	// 		Character->GetEquippedWeapon(),
+	// 		UDamageType::StaticClass()
+	// 	);
+	// }
 }
 
 
@@ -116,12 +175,64 @@ FFramePackage ULagCompensationComponent::GetFrameToCheck(ACDCharacter* HitCharac
 	return FrameToCheck;
 }
 
+//Rewind {1.CacheBox(현재 서버위치저장) 2. MoveBox(과거 패키지 박스 이동) 3.기존 캐릭터 충돌끄기}
 FServerSideRewindResult ULagCompensationComponent::ConfirmHit(const FFramePackage& Package, ACDCharacter* HitCharacter,
 	const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation)
 {
 	if (HitCharacter==nullptr) return FServerSideRewindResult();
 	
 	FFramePackage CurrentFrame;
+	CacheBoxPositions(HitCharacter, CurrentFrame);
+	MoveBoxes(HitCharacter, Package);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::NoCollision);
+	
+	UBoxComponent* HeadBox=HitCharacter->HitCollisionBoxes[FName("head")];
+	HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HeadBox->SetCollisionResponseToChannel(ECC_HitBox, ECR_Block);
+	
+	FHitResult ConfirmHitResult;
+	const FVector TraceEnd=TraceStart+(HitLocation-TraceStart)*1.25f;
+	UWorld* World=GetWorld();
+	if (World){
+		World->LineTraceSingleByChannel(
+			ConfirmHitResult,
+			TraceStart,
+			TraceEnd,
+			ECC_HitBox
+			);
+		if (ConfirmHitResult.bBlockingHit)
+		{
+			ResetHitBoxes(HitCharacter, CurrentFrame);
+			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+			return FServerSideRewindResult(true,true);
+		}
+		else
+		{
+			for (auto& HitBoxPair:HitCharacter->HitCollisionBoxes)
+			{
+				if (HitBoxPair.Value!=nullptr)
+				{
+					HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+					HitBoxPair.Value->SetCollisionResponseToChannel(ECC_HitBox,ECollisionResponse::ECR_Block);
+				}
+			}
+			World->LineTraceSingleByChannel(
+				ConfirmHitResult,
+				TraceStart,
+				TraceEnd,
+				ECC_HitBox
+				);
+			if (ConfirmHitResult.bBlockingHit)
+			{
+				ResetHitBoxes(HitCharacter, CurrentFrame);
+				EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+				return FServerSideRewindResult(true,false);
+			}
+		}
+	}
+	ResetHitBoxes(HitCharacter, CurrentFrame);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+	return FServerSideRewindResult{ false, false };
 }
 
 
