@@ -40,6 +40,9 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	class UHorizontalBox *StateBox;
 
+	//Chat
+	UPROPERTY(meta=(BindWidget))
+	class UChatWidget* ChatWidget;
 
 	//Minimap
 	UPROPERTY(meta=(BindWidget))

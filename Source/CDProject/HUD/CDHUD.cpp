@@ -8,6 +8,7 @@
 #include "CDProject/Widget/Announcement.h"
 #include "CDProject/Widget/C4InteractProgressWidget.h"
 #include "CDProject/Widget/CharacterOverlay.h"
+#include "CDProject/Widget/ChatWidget.h"
 #include "CDProject/Widget/ModeSelect.h"
 #include "CDProject/Widget/ShopOverlay.h"
 #include "CDProject/Widget/SniperScope.h"
@@ -79,6 +80,11 @@ void ACDHUD::AddCharacterOverlay()
 			if (CharacterOverlay)
 			{
 				CharacterOverlay->AddToViewport();
+				ChatWidget=CharacterOverlay->ChatWidget;
+				if (ChatWidget == nullptr)
+				{
+					UE_LOG(LogTemp, Error, TEXT("ChatWidget is Null!!"));
+				}
 			}
 		}
 	}
@@ -194,6 +200,14 @@ void ACDHUD::AddC4Progress()
 			C4InteractProgress->AddToViewport();
 			C4InteractProgress->SetVisibility(ESlateVisibility::Hidden);
 		}
+	}
+}
+
+void ACDHUD::AddChatMessage(const struct FChatMessage& Data)
+{
+	if (ChatWidget)
+	{
+		ChatWidget->AddMessageToChat(Data);
 	}
 }
 

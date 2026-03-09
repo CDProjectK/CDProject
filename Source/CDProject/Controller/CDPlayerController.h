@@ -56,7 +56,9 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSendMessage(const FString& Message);
 	UFUNCTION(Client, Reliable)
-	void ClientReceveMessage(const FString& Message);
+	void ClientReceveMessage(const struct FChatMessage& Data);
+	
+	void ToggleChat(bool bEnable);
 
 	void SetHUDTime();
 	void SetHUDMatchCount(float CountdownTime);
@@ -151,9 +153,10 @@ private:
 	UPROPERTY(EditAnywhere, Category="HUD")
 	TSubclassOf<class UKDOverlay> KDOverlay;
 	
-	UPROPERTY(EditAnywhere, Category="HUD")
-	TSubclassOf<class UCharacterOverlay> _CharacterOverlay;
 
+	UPROPERTY()
+	class UChatWidget* ChatWidget;
+	
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_MatchState)
 	ECurMatchState MatchState;
 
@@ -224,11 +227,16 @@ private:
 	TObjectPtr<class UInputAction> LeftClickAction;
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<class UInputAction> _tabAction;
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<class UInputAction> ChatAction;
+	
+	
 	int32 CurPlayerIndex = 0;
 	
 	void LMouseDown();
 	void TabStart();
 	void TabEnd();
+	void ChatButtonPressed();
 	
 	UFUNCTION(Server, Reliable)
 	void ServerReportPingStatus(bool bHighPing);

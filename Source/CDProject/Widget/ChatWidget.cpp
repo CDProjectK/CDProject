@@ -4,7 +4,9 @@
 #include "ChatWidget.h"
 
 #include "CDProject/Controller/CDPlayerController.h"
+#include "CDProject/WidgetPlus/ChatRow.h"
 #include "Components/EditableText.h"
+#include "Components/ScrollBox.h"
 
 void UChatWidget::NativeConstruct()
 {
@@ -12,8 +14,18 @@ void UChatWidget::NativeConstruct()
 	ChatInputText->OnTextCommitted.AddDynamic(this, &UChatWidget::OnTextCommitted);
 }
 
-void UChatWidget::AddMesaage(const class FChatMessage& Data)
+void UChatWidget::AddMessageToChat(const struct FChatMessage& Data)
 {
+	
+	UChatRow* NewRow=CreateWidget<UChatRow>(this, MessageRowClass);
+	if (!NewRow) UE_LOG(LogTemp, Error, TEXT("Failed to create new row!"));
+	if (NewRow)
+	{
+		NewRow->SetMessageData(Data);
+		ChatScrollBox->AddChild(NewRow);
+		ChatScrollBox->ScrollToEnd();
+		SetRenderOpacity(1.0f);
+	}
 }
 
 void UChatWidget::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)

@@ -80,8 +80,16 @@ public:
 	UPROPERTY(EditAnywhere, Category="ModeSelect")
 	TSubclassOf<UUserWidget> ModeSelectClass;
 
+	UPROPERTY(EditAnywhere, Category="Chat")
+	TSubclassOf<UUserWidget> ChatWidgetClass;
+	
+	UPROPERTY()
+	class UChatWidget* ChatWidget;
+	
 	UPROPERTY()
 	class UModeSelect* ModeSelect;
+	
+	
 
 	void AddSniperScope();
 	void AddCharacterOverlay();
@@ -92,6 +100,7 @@ public:
 	void AddKDOverlay(bool IsActivate);
 	void AddModeSelect();
 	void AddC4Progress();
+	void AddChatMessage(const struct FChatMessage& Data);
 protected:
 	virtual void BeginPlay() override;
 private:

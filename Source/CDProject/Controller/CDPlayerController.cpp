@@ -20,10 +20,12 @@
 #include "CDProject/Widget/Announcement.h"
 #include "CDProject/Widget/C4InteractProgressWidget.h"
 #include "CDProject/Widget/CharacterOverlay.h"
+#include "CDProject/Widget/ChatWidget.h"
 #include "CDProject/Widget/KDOverlay.h"
 #include "CDProject/Widget/SniperScope.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
@@ -423,11 +425,28 @@ void ACDPlayerController::SetHUDMatchCount(float CountdownTime)
 	}
 }
 
-void ACDPlayerController::ClientReceveMessage_Implementation(const FString& Message)
+void ACDPlayerController::ClientReceveMessage_Implementation(const FChatMessage& Data)
 {
-	if (ChatWidget)
+	CDHUD=CDHUD==nullptr?Cast<ACDHUD>(GetHUD()):CDHUD;
+	CDHUD->AddChatMessage(Data);
+}
+
+void ACDPlayerController::ToggleChat(bool bEnable)
+{
+	if (bEnable)
 	{
-		ChatWidget->AddMessageToChat(ChatData);
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(CDHUD->ChatWidget->GetChatInputText()->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+		//Focus를 위젯으로 지정해줘야 제대로 이해할 수 있음.
+		bShowMouseCursor=true;
+	}
+	else
+	{
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		bShowMouseCursor=false;
 	}
 }
 
@@ -652,6 +671,7 @@ void ACDPlayerController::SetGold(int32 NewGold)
 void ACDPlayerController::ServerSendMessage_Implementation(const FString& Message)
 {
 	FChatMessage ChatData;
+	
 	ChatData.SenderName=GetPlayerState<ACDPlayerState>()->GetPlayerName();
 	ChatData.MessageContent=Message;
 	ChatData.TimeStamp=FDateTime::Now();
@@ -660,7 +680,7 @@ void ACDPlayerController::ServerSendMessage_Implementation(const FString& Messag
 	{
 		if (ACDPlayerController* PC=Cast<ACDPlayerController>(It->Get()))
 		{
-			PC->ClientReceiveMessage(ChatData);
+			PC->ClientReceveMessage(ChatData);
 		}
 	}
 }
@@ -934,6 +954,7 @@ void ACDPlayerController::SetupInputComponent()
 		enhancedInputComponent->BindAction(LeftClickAction, ETriggerEvent::Started, this, &ACDPlayerController::LMouseDown);
 		enhancedInputComponent->BindAction(_tabAction, ETriggerEvent::Started, this, &ACDPlayerController::TabStart);
 		enhancedInputComponent->BindAction(_tabAction, ETriggerEvent::Completed, this, &ACDPlayerController::TabEnd);
+		enhancedInputComponent->BindAction(ChatAction, ETriggerEvent::Started,this, &ACDPlayerController::ChatButtonPressed);
 	}
 }
 
@@ -1027,6 +1048,12 @@ void ACDPlayerController::TabStart()
 void ACDPlayerController::TabEnd()
 {
 	ShowKDOverlay(false);
+}
+
+void ACDPlayerController::ChatButtonPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Chat Button Pressed"));
+	ToggleChat(true);
 }
 
 void ACDPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
