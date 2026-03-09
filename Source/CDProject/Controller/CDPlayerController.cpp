@@ -422,6 +422,15 @@ void ACDPlayerController::SetHUDMatchCount(float CountdownTime)
 		CDHUD->CharacterOverlay->MatchCountdownText->SetText(FText::FromString(CountdownText));
 	}
 }
+
+void ACDPlayerController::ClientReceveMessage_Implementation(const FString& Message)
+{
+	if (ChatWidget)
+	{
+		ChatWidget->AddMessageToChat(ChatData);
+	}
+}
+
 void ACDPlayerController::SetHUDTime()
 {
 	float TimeLeft = 0.f;
@@ -638,6 +647,27 @@ void ACDPlayerController::SetGold(int32 NewGold)
 		FText GoldText = FText::AsNumber(HUDGoldCount); 
 		CDHUD->CharacterOverlay->Gold->SetText(GoldText);
 	}
+}
+
+void ACDPlayerController::ServerSendMessage_Implementation(const FString& Message)
+{
+	FChatMessage ChatData;
+	ChatData.SenderName=GetPlayerState<ACDPlayerState>()->GetPlayerName();
+	ChatData.MessageContent=Message;
+	ChatData.TimeStamp=FDateTime::Now();
+	
+	for (FConstPlayerControllerIterator It=GetWorld()->GetPlayerControllerIterator();It;++It)
+	{
+		if (ACDPlayerController* PC=Cast<ACDPlayerController>(It->Get()))
+		{
+			PC->ClientReceiveMessage(ChatData);
+		}
+	}
+}
+
+bool ACDPlayerController::ServerSendMessage_Validate(const FString& Message)
+{
+	return Message.Len()<=200;
 }
 
 void ACDPlayerController::SetKDOverlayUI()

@@ -11,6 +11,20 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bPingTooHigh);
 
+USTRUCT(BlueprintType)
+struct FChatMessage{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly)
+	FString SenderName;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FString MessageContent;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FDateTime TimeStamp;
+};
+
 UCLASS()
 class CDPROJECT_API ACDPlayerController : public ACDSessionPlayerController, public IGenericTeamAgentInterface
 {
@@ -38,6 +52,11 @@ public:
 	void SetHUDCrossHair(FHUDPackage HudPackage);
 	UFUNCTION()
 	void SetGold(int32 NewGold);
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSendMessage(const FString& Message);
+	UFUNCTION(Client, Reliable)
+	void ClientReceveMessage(const FString& Message);
 
 	void SetHUDTime();
 	void SetHUDMatchCount(float CountdownTime);
